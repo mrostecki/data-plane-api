@@ -1,22 +1,46 @@
-GOOGLEAPIS_SHA = "5c6df0cd18c6a429eab739fb711c27f6e1393366" # May 14, 2017
-GOGOPROTO_SHA = "342cbe0a04158f6dcb03ca0079991a51a4248c02" # Oct 7, 2017
-PROMETHEUS_SHA = "6f3806018612930941127f2a7c6c453ba2c527d2" # Nov 02, 2017
-OPENCENSUS_SHA = "993c711ba22a5f08c1d4de58a3c07466995ed962" # Dec 13, 2017
-
-PGV_GIT_SHA = "3204975f8145b7d187081b7034060012ae838d17"
-
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 def api_dependencies():
-    git_repository(
+    native.new_local_repository(
         name = "com_lyft_protoc_gen_validate",
-        remote = "https://github.com/lyft/protoc-gen-validate.git",
-        commit = PGV_GIT_SHA,
+        path = "../protoc-gen-validate",
+        build_file_content = """
+load("@io_bazel_rules_go//go:def.bzl", "gazelle", "go_binary", "go_library", "go_prefix")
+load("//bazel:go_proto_library.bzl", "go_google_protobuf")
+
+go_prefix("github.com/lyft/protoc-gen-validate")
+
+gazelle(
+    name = "gazelle",
+    external = "vendored",
+)
+
+go_binary(
+    name = "protoc-gen-validate",
+    srcs = [
+        "checker.go",
+        "main.go",
+        "module.go",
+    ],
+    importpath = "github.com/lyft/protoc-gen-validate",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//templates:go_default_library",
+        "//validate:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/golang/protobuf/ptypes:go_default_library",
+        "//vendor/github.com/golang/protobuf/ptypes/duration:go_default_library",
+        "//vendor/github.com/golang/protobuf/ptypes/timestamp:go_default_library",
+        "//vendor/github.com/lyft/protoc-gen-star:go_default_library",
+    ],
+)
+
+go_google_protobuf()
+""",
     )
-    native.new_http_archive(
+    native.new_local_repository(
         name = "googleapis",
-        strip_prefix = "googleapis-" + GOOGLEAPIS_SHA,
-        url = "https://github.com/googleapis/googleapis/archive/" + GOOGLEAPIS_SHA + ".tar.gz",
+        path = "../googleapis-api",
         build_file_content = """
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library", "py_proto_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
@@ -128,10 +152,9 @@ py_proto_library(
 """,
     )
 
-    native.new_http_archive(
+    native.new_local_repository(
         name = "com_github_gogo_protobuf",
-        strip_prefix = "protobuf-" + GOGOPROTO_SHA,
-        url = "https://github.com/gogo/protobuf/archive/" + GOGOPROTO_SHA + ".tar.gz",
+        path = "../gogo-protobuf",
         build_file_content = """
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library", "py_proto_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
@@ -188,10 +211,9 @@ py_proto_library(
         """,
     )
 
-    native.new_http_archive(
+    native.new_local_repository(
         name = "promotheus_metrics_model",
-        strip_prefix = "client_model-" + PROMETHEUS_SHA,
-        url = "https://github.com/prometheus/client_model/archive/" + PROMETHEUS_SHA + ".tar.gz",
+        path = "../prometheus-client-model",
         build_file_content = """
 load("@envoy_api//bazel:api_build_system.bzl", "api_proto_library")
 
@@ -205,10 +227,9 @@ api_proto_library(
         """,
     )
 
-    native.new_http_archive(
+    native.new_local_repository(
         name = "io_opencensus_trace",
-        strip_prefix = "opencensus-proto-" + OPENCENSUS_SHA + "/opencensus/proto/trace",
-        url = "https://github.com/census-instrumentation/opencensus-proto/archive/" + OPENCENSUS_SHA + ".tar.gz",
+        path = "../opencensus-proto",
         build_file_content = """
 load("@envoy_api//bazel:api_build_system.bzl", "api_proto_library")
 
